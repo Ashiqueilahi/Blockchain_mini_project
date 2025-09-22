@@ -1,0 +1,97 @@
+import hashlib
+import datetime
+import os
+
+class CertificateRegistry:
+    def _init_(self):
+        self.certificates = {}  # fileHash -> certificate info
+        self.next_id = 1
+
+    def compute_hash(self, file_path):
+        if not os.path.exists(file_path):
+            # Simulate hash if file doesn't exist
+            return hashlib.sha256(file_path.encode()).hexdigest()
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+        return hashlib.sha256(file_bytes).hexdigest()
+
+    def issue_certificate(self, student_name, course, file_path, ipfs_cid=""):
+        file_hash = self.compute_hash(file_path)
+        if file_hash in self.certificates:
+            return f"Certificate already issued for this file: {file_hash}"
+        cert = {
+            "id": self.next_id,
+            "studentName": student_name,
+            "course": course,
+            "ipfsCID": ipfs_cid,
+            "fileHash": file_hash,
+            "issuer": "Admin",
+            "issuedAt": datetime.datetime.now(),
+            "valid": True
+        }
+        self.certificates[file_hash] = cert
+        self.next_id += 1
+        return f"Certificate issued successfully! File hash: {file_hash}"
+
+    def verify_certificate(self, file_path_or_hash):
+        if len(file_path_or_hash) == 64:
+            file_hash = file_path_or_hash
+        else:
+            file_hash = self.compute_hash(file_path_or_hash)
+        cert = self.certificates.get(file_hash)
+        if not cert:
+            return False, None
+        return cert["valid"], cert
+
+    def revoke_certificate(self, file_path_or_hash):
+        if len(file_path_or_hash) == 64:
+            file_hash = file_path_or_hash
+        else:
+            file_hash = self.compute_hash(file_path_or_hash)
+        cert = self.certificates.get(file_hash)
+        if not cert:
+            return f"No certificate found for this file/hash: {file_hash}"
+        cert["valid"] = False
+        return f"Certificate revoked successfully! File hash: {file_hash}"
+
+
+# ------------------ INTERACTIVE TERMINAL ------------------
+def main():
+    registry = CertificateRegistry()
+    while True:
+        print("\n=== Certificate Registry Menu ===")
+        print("1. Issue Certificate")
+        print("2. Verify Certificate")
+        print("3. Revoke Certificate")
+        print("4. Exit")
+        choice = input("Enter your choice (1-4): ").strip()
+
+        if choice == "1":
+            student = input("Student Name: ").strip()
+            course = input("Course Name: ").strip()
+            file_name = input("Certificate File Name: ").strip()
+            print(registry.issue_certificate(student, course, file_name))
+
+        elif choice == "2":
+            file_or_hash = input("Enter file name or file hash to verify: ").strip()
+            valid, cert = registry.verify_certificate(file_or_hash)
+            if not cert:
+                print("Certificate not found.")
+            else:
+                print(f"Valid: {valid}")
+                print("Details:", cert)
+
+        elif choice == "3":
+            file_or_hash = input("Enter file name or file hash to revoke: ").strip()
+            print(registry.revoke_certificate(file_or_hash))
+
+        elif choice == "4":
+            print("Exiting... Goodbye!")
+            break
+
+        else:
+            print("Invalid choice. Enter 1-4.")
+
+
+if _name_ == "_main_":
+    main()
