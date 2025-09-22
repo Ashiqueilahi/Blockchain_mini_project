@@ -59,4 +59,3 @@ README.md                 # Documentation
 
 ---
 
-👨‍💻 Developed for learning purposes – perfect for understanding **hash-based verification** in Python.
